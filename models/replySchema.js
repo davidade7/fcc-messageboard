@@ -11,4 +11,4 @@ const replySchema = new mongoose.Schema({
 // Models
 const Reply = mongoose.model('Reply', replySchema);
 
-module.exports = Reply;
+module.exports = { replySchema, Reply };
