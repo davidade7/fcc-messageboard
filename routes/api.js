@@ -181,4 +181,45 @@ module.exports = function (app) {
           console.log("post reply error:", error)
         }
       })
+
+      .get(async (req, res) => {
+        try {
+          const thread_id = req.query.thread_id;
+          
+          // Find the thread
+          const thread = await Thread.findOne({ _id: thread_id });
+          
+          // If thread not found
+          if (!thread) {
+            return res.send("thread not found")
+          }
+
+          // List of reply ids
+          const repliesIds = thread.replies;
+
+          // Find the replies
+          const replies = await Reply.find({ _id: { $in: repliesIds } })
+          .sort({ created_on: -1 })
+          .lean();
+
+          const threadWithReplies = {
+            // add thread details
+            ...thread.toObject(),
+            // add sanitized replies
+            replies: replies.map(reply => {
+              const { reported, delete_password, ...sanitizedReply } = reply;
+              return sanitizedReply;
+            })
+          }
+
+          // Remove reported and delete_password fields from thread
+          delete threadWithReplies.reported;
+          delete threadWithReplies.delete_password;
+
+          res.json(threadWithReplies);
+        }
+        catch (error) {
+          console.log("get replies error:", error)
+        }
+      })
 };
