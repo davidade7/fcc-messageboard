@@ -131,6 +131,25 @@ module.exports = function (app) {
       }
     })
 
+    .put(async (req, res) => {
+      try{
+        const { thread_id } = req.body;
+        const thread = await Thread.findOneAndUpdate({ _id: thread_id }, { reported: true });
+
+        // If thread not found
+        if (!thread) {
+          return res.send("thread not found")
+        } 
+        // If thread is found and reported
+        else {
+          return res.send("reported")
+        }
+      } 
+      catch (error) {
+        console.log("put thread error:", error)
+      }
+    })
+
     app.route('/api/replies/:board');
 
 };
