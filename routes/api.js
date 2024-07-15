@@ -150,6 +150,35 @@ module.exports = function (app) {
       }
     })
 
-    app.route('/api/replies/:board');
+    app.route('/api/replies/:board')
+      .post(async (req, res) => {
+        try {
+          const board = req.params.board;
+          const { thread_id, text, delete_password } = req.body;
+          
+          // Find the thread
+          const thread = await Thread.findOne({ _id: thread_id });
+          if (!thread) {
+            return res.send("thread not found")
+          }
 
+          // Create new reply
+          const newReply = new Reply({
+            text: text,
+            delete_password: delete_password
+          })
+          await newReply.save()
+
+          // Update the thread
+          const updateThread = await Thread.findOneAndUpdate({ _id: thread_id }, { bumped_on: new Date(), $push: { replies: newReply._id } })
+          await updateThread.save()
+          
+        
+          // Redirect to the thread
+          res.redirect(`/b/${board}/${thread_id}`)
+        }
+        catch (error) {
+          console.log("post reply error:", error)
+        }
+      })
 };
