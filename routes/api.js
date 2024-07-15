@@ -100,8 +100,37 @@ module.exports = function (app) {
         console.log("get threads error:", error)
       }
     })
+    .delete(async (req, res) => {
+      try{
+        const board = req.params.board;
+        const { thread_id, delete_password } = req.body;
+        const thread = await Thread.findOne({ _id: thread_id});
+        
+        // If thread not found
+        if (!thread) {
+          res.send("thread not found")
+          return
+        }
+        
+        // Check if password is correct
+        if (thread.delete_password !== delete_password) {
+          // Password is incorrect
+          res.send("incorrect password")
+          return
+        } else {
+          // Password is correct
+          res.send("success")
+          // Delete the thread
+          await Thread.deleteOne({ _id: thread_id })
+          // Delete the thread from the board
+          await Board.updateOne({ board: board }, { $pull: { threads: thread_id } })
+        }
+      }
+      catch(error){
+        console.log("delete thread error:", error)
+      }
+    })
 
-
-  app.route('/api/replies/:board');
+    app.route('/api/replies/:board');
 
 };
