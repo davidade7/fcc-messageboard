@@ -222,4 +222,40 @@ module.exports = function (app) {
           console.log("get replies error:", error)
         }
       })
+      .delete(async (req, res) => {
+        try { 
+          const { thread_id, reply_id, delete_password } = req.body;
+          
+          // Find the thread
+          const thread = await Thread.findOne({ _id: thread_id });
+          if (!thread) {
+            return res.send("thread not found")
+          }
+
+          // Find the reply
+          const reply = await Reply.findOne({ _id: reply_id });
+          if (!reply) {
+            return res.send("reply not found")
+          }
+
+          // Check if reply is in thread
+          if (!thread.replies.includes(reply_id)) {
+            return res.send("reply not in thread")
+          }
+
+          // Check if password is correct
+          if (reply.delete_password !== delete_password) {
+            return res.send("incorrect password")
+          } else {
+            // Password is correct
+            await Reply.findOneAndUpdate({ _id: reply_id }, { text: "[deleted]" })
+            return res.send("success")
+          }
+
+        }
+        catch (error) {
+          console.log("delete reply error:", error)
+        }
+      })
+      
 };
