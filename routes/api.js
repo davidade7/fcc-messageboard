@@ -16,20 +16,6 @@ const { Thread } = require('../models/threadSchema');
 const Board = require('../models/boardSchema');
 
 
-const findBoard = async (board) => {
-  const result = await Board.findOne({ board: board });
-  const exists = result ? result : false;
-  return exists;
-}
-
-const findThread = async (thread_id) => {
-  const result = await Thread.findOne({ _id: thread_id });
-  const exists = result ? result : false;
-  return exists;
-}
-
-
-
 module.exports = function (app) {
   
   app.route('/api/threads/:board')
