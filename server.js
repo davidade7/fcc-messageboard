@@ -10,6 +10,17 @@ const runner            = require('./test-runner');
 
 const app = express();
 
+const helmet = require("helmet")
+
+app.use(helmet.frameguard({action: 'deny'}))
+app.use(helmet.dnsPrefetchControl())
+app.use(
+  helmet({
+    referrerPolicy: { policy: "same-origin" },
+  })
+);
+
+
 app.use('/public', express.static(process.cwd() + '/public'));
 
 app.use(cors({origin: '*'})); //For FCC testing purposes only

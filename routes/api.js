@@ -257,5 +257,35 @@ module.exports = function (app) {
           console.log("delete reply error:", error)
         }
       })
-      
+      .put(async (req, res) => {
+        try {
+          const { thread_id, reply_id } = req.body;
+
+          // Find the thread
+          const thread = await Thread.findOne({ _id: thread_id });
+          if (!thread) {
+            return res.send("thread not found")
+          }
+          // Find the reply
+          const reply = await Reply.findOne({ _id: reply_id });
+          if (!reply) {
+            return res.send("reply not found")
+          }
+          // Check if reply is in thread
+          if (!thread.replies.includes(reply_id)) {
+            return res.send("reply not in thread")
+          }
+
+          // Update the reply
+          const updatedReply = await Reply.findOneAndUpdate({ _id: reply_id }, { reported: true })
+          updatedReply.save()
+          
+          return res.send("reported")
+
+        } 
+        catch (error) {
+          console.log("put reply error:", error)
+        }
+
+      })
 };
