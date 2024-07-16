@@ -16,11 +16,27 @@ const { Thread } = require('../models/threadSchema');
 const Board = require('../models/boardSchema');
 
 
+const findBoard = async (board) => {
+  const result = await Board.findOne({ board: board });
+  const exists = result ? result : false;
+  return exists;
+}
+
+const findThread = async (thread_id) => {
+  const result = await Thread.findOne({ _id: thread_id });
+  const exists = result ? result : false;
+  return exists;
+}
+
+
+
 module.exports = function (app) {
   
   app.route('/api/threads/:board')
     .post(async (req, res) => {
       try {
+        let timestamp = new Date();
+
         // Check if board exists
         const board = req.params.board ? req.params.board : req.body.board;
         const boardExists = await Board.findOne({ board: board });
@@ -37,7 +53,9 @@ module.exports = function (app) {
         // Create new thread
         const newThread = new Thread({
           text: req.body.text,
-          delete_password: req.body.delete_password
+          delete_password: req.body.delete_password,
+          created_on: timestamp,
+          bumped_on: timestamp
         })
         await newThread.save()
 
@@ -71,11 +89,14 @@ module.exports = function (app) {
         // find latest 10 threads in the board and sort by date
         const threads = await Thread.find({ _id: { $in: threadIds } })
           .sort({ bumped_on: -1 }) 
-          .limit(10); 
+          .limit(10)
+          .lean();
 
         // find latest 3 replies for each thread
         const threadsWithReplies = await Promise.all(threads.map(async thread => {
-          const replies = await Reply.find({ thread_id: thread._id })
+          const repliesId = thread.replies;
+          const replycount = repliesId.length;
+          const replies = await Reply.find({ _id: { $in: repliesId }})
             .sort({ created_on: -1 })
             .limit(3)
             .lean();
@@ -89,9 +110,10 @@ module.exports = function (app) {
 
           // Remove reported and delete_password fields from threads 
           thread.replies = sanitizedReplies;
-            delete thread.reported;
-            delete thread.delete_password;
-            return thread;
+          delete thread.reported;
+          delete thread.delete_password;
+          thread.replycount = replycount;
+          return thread;
         }));
 
         res.json(threadsWithReplies);
@@ -153,6 +175,9 @@ module.exports = function (app) {
     app.route('/api/replies/:board')
       .post(async (req, res) => {
         try {
+          let timestamp = new Date();
+          
+          // Find the board
           const board = req.params.board;
           const { thread_id, text, delete_password } = req.body;
           
@@ -165,12 +190,14 @@ module.exports = function (app) {
           // Create new reply
           const newReply = new Reply({
             text: text,
-            delete_password: delete_password
+            delete_password: delete_password,
+            created_on: timestamp
           })
           await newReply.save()
 
+          
           // Update the thread
-          const updateThread = await Thread.findOneAndUpdate({ _id: thread_id }, { bumped_on: new Date(), $push: { replies: newReply._id } })
+          const updateThread = await Thread.findOneAndUpdate({ _id: thread_id }, { bumped_on: timestamp, $push: { replies: newReply._id } })
           await updateThread.save()
           
         
